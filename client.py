@@ -3,7 +3,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import requests
 import time
-
+from threading import Timer
 
 
 NODEMCU_IP = '192.168.1.145'
@@ -17,11 +17,17 @@ SERVICE_ACCOUNT_FILE = './service_key.json'
 
 class NFCReader():
     ids = []
-
+    lastId = ""
+    currentId = ""
 
     def getID(self):
-        self.addToQueue(self.getCurrentId())
+        self.currentId = self.getCurrentId()
 
+        if self.lastId != self.currentId:
+            self.addToQueue(self.currentId)
+        
+        self.lastId = self.currentId
+            
 
     def getCurrentId(self):
         res = requests.get(f'http://{NODEMCU_IP}{GET_ID_ROUTE}')
@@ -31,6 +37,13 @@ class NFCReader():
     def addToQueue(self, id):
         if not id in self.ids and id != '':
             self.ids.append(id)
+
+    
+    def resetLastId(self):
+        if self.lastId != self.currentId:
+            self.lastId = ""
+            
+        Timer(5, self.resetLastId).start()
 
 
 
@@ -66,13 +79,15 @@ class SheetWriter:
 def main():
     nfcReader = NFCReader()
     sheetWriter = SheetWriter()
-
     
-    while True:
-        nfcReader.getID()
-        print(nfcReader.ids)
+    nfcReader.resetLastId()
 
+    while True:
+        
+        nfcReader.getID()
+        
         if len(nfcReader.ids) > 0:
+            print(nfcReader.ids)
             sheetWriter.append(nfcReader.ids.pop(0))
 
         time.sleep(0.5)
