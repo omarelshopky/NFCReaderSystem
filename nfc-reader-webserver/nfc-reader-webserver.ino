@@ -71,7 +71,7 @@ void loop() {
   }
   
   inIdsQueue(""); // Print queue values
-  delay(200);
+  delay(100);
 }
 
 
